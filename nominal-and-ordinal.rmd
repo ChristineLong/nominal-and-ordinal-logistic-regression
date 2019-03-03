@@ -134,7 +134,15 @@ data_ord = data_ord_low %>%
   rbind(data_ord_high) %>% 
   mutate(resp = factor(resp, levels=c("sat_low","sat_med","sat_high"),ordered=T))
 
-ord.po = polr(resp~type+contact,data=data_ord,weights=freq)
-summary(ord.po)
+ord.fit = polr(resp~type+contact,data=data_ord,weights=freq)
+summary(ord.fit)
 ```
 
+
+
+```{r}
+pihat_ord=predict(ord.fit,type='probs') 
+res.pearson=(data_nom[,3:5]-pihat*data_nom$m)/sqrt(pihat*data_nom$m) # pearson residuals 
+```
+
+Largest discrepency: house type, low contact
