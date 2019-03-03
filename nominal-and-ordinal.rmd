@@ -1,0 +1,114 @@
+---
+title: "Nominal and Odinal"
+author: "Yuelin Long"
+date: "February 28, 2019"
+output: html_document
+---
+
+```{r}
+#Load libraries needed
+library(nnet)
+library(tidyverse)
+```
+
+
+
+##Question 1
+```{r}
+#Import data
+type = rep(c("tower","apartment","house"),2)
+contact = c(rep("low",3),rep("high",3))
+
+sat_low = c(65,130,67,34,141,130)
+sat_med = c(54,76,48,47,116,105)
+sat_high = c(100,111,62,100,191,104)
+y = cbind(sat_low,sat_med,sat_high)
+m = rowSums(y)
+y_percent = cbind(sat_low/m,sat_med/m,sat_high/m)
+
+
+data_nom = data.frame(type,contact,y,m, y_percent)
+data_nom
+
+```
+
+Patterns:
+
++ People live in tower block have higher satisfaction than the other two types of housing;
++ For people live in house， there are less differences betweene different satisfcatory level.
+
+
+##Question 2
+
+```{r}
+#Build multinomial logistic regression with nomial response
+nom.fit = multinom(cbind(sat_low,sat_med,sat_high)~type+contact, data=data_nom)
+summary(nom.fit)
+```
+
+
+```{r}
+#95% CI
+ci_fun = function(b,b_se){
+  b_lower_ci = b + b_se * qnorm(0.025)
+  b_upper_ci = b - b_se * qnorm(0.025)
+  print(c(b_lower_ci, b_upper_ci))
+}
+
+
+#First, get CI for coefficients in the sat_med model
+#CI for house type coefficient in sat_med model
+ci_fun(0.06967922,0.1437749)
+#CI for tower type coefficient in sat_med model
+ci_fun(0.4067631,0.1713009)
+#CI for low contact coefficient in sat_med model
+ci_fun(-0.2959832,0.1301046)
+
+
+#Then, get CI for coefficients in the sat_high model
+#CI for house type coefficient in sat_high model
+ci_fun(-0.30402275,0.1351693)
+#CI for tower type coefficient in sat_high model
+ci_fun(0.6415948,0.1500774)
+#CI for low contact coefficient in sat_high model
+ci_fun(-0.3282264,0.1181870)
+```
+
+
+```{r}
+# goodness of fit
+pihat=predict(nom.fit,type='probs') 
+res.pearson=(data_nom[,3:5]-pihat*data_nom$m)/sqrt(pihat*data_nom$m) # pearson residuals 
+
+G.stat=sum(res.pearson^2) # Generalized Pearson Chisq Stat
+G.stat
+
+pval=1-pchisq(G.stat,df=(6-4)*(3-1))
+pval
+
+# deviance
+D.stat=sum(2*data_nom[,3:5]*log(data_nom[,3:5]/(data_nom$m*pihat)))
+D.stat
+```
+
+
+
+```{r}
+#Optional: Interaction
+nom.fit.int = multinom(cbind(sat_low,sat_med,sat_high)~type*contact, data=data_nom)
+summary(nom.fit.int)
+
+#Deviance Analysis
+D1 = D.stat
+p1 = 4
+
+p2 = 6
+pihat_2 = predict(nom.fit.int,type='probs') 
+D2 = sum(2*data_nom[,3:5]*log(data_nom[,3:5]/(data_nom$m*pihat_2)))
+
+test_stat = ((D1-D2)/p2)/(G.stat/(6-p1-p2))
+crit_val = qf(0.05,p2,(6-p1-p2))
+```
+
+
+
