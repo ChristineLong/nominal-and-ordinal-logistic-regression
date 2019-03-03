@@ -27,7 +27,7 @@ m = rowSums(y)
 y_percent = cbind(sat_low/m,sat_med/m,sat_high/m)
 
 
-data_nom = data.frame(type,contact,y,m, y_percent)
+data_nom = data.frame(type,contact,y,m)
 data_nom
 
 ```
@@ -110,5 +110,31 @@ test_stat = ((D1-D2)/p2)/(G.stat/(6-p1-p2))
 crit_val = qf(0.05,p2,(6-p1-p2))
 ```
 
+##Question 3
+```{r}
+#Fit proportional odds model with ordinal vars
+library(MASS)
+data_ord_low = data_nom %>% 
+  rename(freq = sat_low) %>% 
+  mutate(resp = "sat_low") %>% 
+  dplyr::select(-sat_med, -sat_high)
 
+data_ord_med = data_nom %>% 
+  rename(freq = sat_med) %>% 
+  mutate(resp = "sat_med") %>% 
+  dplyr::select(-sat_low, -sat_high)
+
+data_ord_high = data_nom %>% 
+  rename(freq = sat_high) %>% 
+  mutate(resp = "sat_high") %>% 
+  dplyr::select(-sat_low, -sat_med)
+
+data_ord = data_ord_low %>% 
+  rbind(data_ord_med) %>% 
+  rbind(data_ord_high) %>% 
+  mutate(resp = factor(resp, levels=c("sat_low","sat_med","sat_high"),ordered=T))
+
+ord.po = polr(resp~type+contact,data=data_ord,weights=freq)
+summary(ord.po)
+```
 
